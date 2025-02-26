@@ -936,3 +936,9 @@ FROM (
 	GROUP BY [OrderDate]
 ) A
 ORDER BY [OrderDate]
+
+/*
+27-02-2025
+----------
+
+*/
