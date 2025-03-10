@@ -938,7 +938,47 @@ FROM (
 ORDER BY [OrderDate]
 
 /*
-27-02-2025
+10-03-2025
 ----------
-
 */
+
+-- Scaler subqueries --
+SELECT [ProductID]
+	  ,[Name]
+	  ,[StandardCost]
+	  ,[ListPrice]
+	  ,AvgListPrice = (SELECT AVG(ListPrice) FROM [AdventureWorks2019].[Production].[Product])
+	  ,AvfListPrieDiff = [ListPrice] - (SELECT AVG(ListPrice) FROM [AdventureWorks2019].[Production].[Product])
+
+FROM [AdventureWorks2019].[Production].[Product]
+
+WHERE [ListPrice] > (SELECT AVG(ListPrice) FROM [AdventureWorks2019].[Production].[Product])
+
+ORDER BY [ListPrice];
+
+
+-- So the bottomline to keep in mind is any time you want to include aggregate calculations directly in your WHERE Clause, subqueries are the way to go.
+
+-- Subqueries in the FROM clause need to be aliased and most other Subqueries do not. BUt there are exceptions.
+
+-- We cannot include "Windows Function" in WHERE clasue.
+
+
+-- Corelated subqueries --
+-- Corealated subqueries can be used in either the SELECT OR WHERE Clause.
+
+SELECT [SalesOrderID]
+	  ,[OrderDate]
+	  ,[SubTotal]
+	  ,[TaxAmt]
+	  ,[Freight]
+	  ,[TotalDue]
+	  ,[MultiOrderCount] =
+	  (
+		SELECT COUNT(*)
+		FROM [AdventureWorks2019].[Sales].[SalesOrderDetail] b
+		WHERE b.SalesOrderID = a.SalesOrderID
+		AND b.OrderQty > 1
+	  )
+
+FROM [AdventureWorks2019].[Sales].[SalesOrderHeader] a;
