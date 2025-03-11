@@ -967,6 +967,8 @@ ORDER BY [ListPrice];
 -- Corelated subqueries --
 -- Corealated subqueries can be used in either the SELECT OR WHERE Clause.
 
+-- Corelated subquery In SELECT Clause.
+
 SELECT [SalesOrderID]
 	  ,[OrderDate]
 	  ,[SubTotal]
@@ -982,3 +984,124 @@ SELECT [SalesOrderID]
 	  )
 
 FROM [AdventureWorks2019].[Sales].[SalesOrderHeader] a;
+
+/*
+11-03-2025
+----------
+
+-- Corelated subquery In WHERE Clause. (EXISTS & NOT EXISTS) --
+
+When to use EXISTS
+1. For 1 to 1 relationships, there really isn't much of an advantage to using EXISTS,
+However, EXISTS offers some powerful advantages when dealing with one-to-many relationships.
+
+2. If you want to apply criteria to fields from a secondary table, but don't need to include those fields in your output.
+3. If you want to check a secondary table to make sure a match of some type does not exists.
+
+*/
+
+-- EXISTS --  
+--It doesn't matter what you write in SELECT clause of WHERE EXIST clause, it doesn't return any thing.
+
+SELECT a.[SalesOrderID]
+      ,a.[OrderDate]
+	  ,a.[TotalDue]
+
+FROM [AdventureWorks2019].[Sales].[SalesOrderHeader] a
+
+WHERE EXISTS (
+	SELECT 1
+	FROM [AdventureWorks2019].[Sales].[SalesOrderDetail] b
+	WHERE [LineTotal] < 10000
+	AND b.[SalesOrderID]=a.[SalesOrderID]
+)
+
+ORDER BY 1
+
+-- NOT EXISTS --  
+
+SELECT a.[SalesOrderID]
+      ,a.[OrderDate]
+	  ,a.[TotalDue]
+
+FROM [AdventureWorks2019].[Sales].[SalesOrderHeader] a
+
+WHERE NOT EXISTS (
+	SELECT 1
+	FROM [AdventureWorks2019].[Sales].[SalesOrderDetail] b
+	WHERE [LineTotal] > 10000
+	AND b.[SalesOrderID]=a.[SalesOrderID]
+)
+
+ORDER BY 1
+
+
+-- For XML PATH with STUFF --
+SELECT 
+		[SalesOrderID]
+	   ,[OrderDate]
+	   ,[SubTotal]
+	   ,[TaxAmt]
+	   ,[Freight]
+	   ,[TotalDue]
+	   ,LineTotals = STUFF(
+	   
+					(SELECT 
+					',' + CAST(CAST([LineTotal] AS MONEY) AS VARCHAR)
+					FROM [AdventureWorks2019].[Sales].[SalesOrderDetail] B
+					WHERE B.[SalesOrderID]=A.[SalesOrderID]
+					FOR XML PATH('')
+					),
+					1,1,''
+						)
+
+FROM [AdventureWorks2019].[Sales].[SalesOrderHeader] A
+
+
+-- PIVOT --
+SELECT 
+ [Bikes]
+,[Clothing]
+,[Accessories]
+,[Components]
+
+FROM
+	(SELECT
+		   ProductCategoryName = D.Name,
+		   A.LineTotal
+	FROM AdventureWorks2019.Sales.SalesOrderDetail A
+		JOIN AdventureWorks2019.Production.Product B
+			ON A.ProductID = B.ProductID
+		JOIN AdventureWorks2019.Production.ProductSubcategory C
+			ON B.ProductSubcategoryID = C.ProductSubcategoryID
+		JOIN AdventureWorks2019.Production.ProductCategory D
+			ON C.ProductCategoryID = D.ProductCategoryID
+	) A
+
+PIVOT (
+SUM(LineTotal)
+FOR ProductCategoryName IN ([Bikes],[Clothing],[Accessories],[Components])
+) B
+
+SELECT 
+ *
+FROM
+	(SELECT
+		    ProductCategoryName = D.Name
+		   ,A.LineTotal
+		   ,A.OrderQty
+	FROM AdventureWorks2019.Sales.SalesOrderDetail A
+		JOIN AdventureWorks2019.Production.Product B
+			ON A.ProductID = B.ProductID
+		JOIN AdventureWorks2019.Production.ProductSubcategory C
+			ON B.ProductSubcategoryID = C.ProductSubcategoryID
+		JOIN AdventureWorks2019.Production.ProductCategory D
+			ON C.ProductCategoryID = D.ProductCategoryID
+	) A
+
+PIVOT (
+SUM(LineTotal)
+FOR ProductCategoryName IN ([Bikes],[Clothing],[Accessories],[Components])
+) B
+
+ORDER BY 1
